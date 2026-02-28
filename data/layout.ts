@@ -57,7 +57,7 @@ export const layerOverrides: Record<number, Record<string, LayerOverride>> = {
     "L-3-2": { label: "ESC", type: "mod" },
     "L-3-4": { label: "BSPC", type: "mod" },
     // Left thumb
-    "L-T-0": { label: "REP", subLabel: "repeat", type: "thumb" },
+    "L-T-0": { label: "ALT", subLabel: "option", type: "thumb" },
     // Right half — row 2
     "R-2-0": { label: "\u2190", subLabel: "left", type: "mod" },
     "R-2-1": { label: "\u2193", subLabel: "down", type: "mod" },
