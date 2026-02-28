@@ -1,65 +1,175 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
+import { KeyboardLayout } from "@/components/keyboard/KeyboardLayout";
+import { ComboPanel } from "@/components/combos/ComboPanel";
+import { LedPreview } from "@/components/leds/LedPreview";
+import { LayerSwitcher } from "@/components/ui/LayerSwitcher";
+import { Legend } from "@/components/ui/Legend";
+import { combos } from "@/data/combos";
+import { comboLookup } from "@/lib/combo-lookup";
+import { ComboType } from "@/data/types";
 
 export default function Home() {
+  const [activeLayer, setActiveLayer] = useState(0);
+  const [hoveredKeyId, setHoveredKeyId] = useState<string | null>(null);
+  const [hoveredComboId, setHoveredComboId] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement) return;
+      if (e.key === "1") setActiveLayer(0);
+      if (e.key === "2") setActiveLayer(1);
+      if (e.key === "3") setActiveLayer(2);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const { highlights, activeComboIds } = useMemo(() => {
+    const highlights = new Map<string, ComboType>();
+    let activeComboIds: string[] = [];
+
+    if (hoveredComboId) {
+      const combo = combos.find((c) => c.id === hoveredComboId);
+      if (combo) {
+        combo.keys.forEach((k) => highlights.set(k, combo.type));
+        activeComboIds = [hoveredComboId];
+      }
+    } else if (hoveredKeyId) {
+      const keyCombos = comboLookup.get(hoveredKeyId) ?? [];
+      for (const combo of keyCombos) {
+        for (const keyId of combo.keys) {
+          if (!highlights.has(keyId)) {
+            highlights.set(keyId, combo.type);
+          }
+        }
+      }
+      activeComboIds = keyCombos.map((c) => c.id);
+    }
+
+    return { highlights, activeComboIds };
+  }, [hoveredKeyId, hoveredComboId]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div
+      style={{
+        padding: 40,
+        maxWidth: 1100,
+        margin: "0 auto",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: 28,
+          fontWeight: 600,
+          marginBottom: 6,
+          color: "var(--kb-text-bright)",
+        }}
+      >
+        Synapse
+      </h1>
+      <p
+        style={{
+          fontSize: 14,
+          color: "var(--kb-text-muted)",
+          marginBottom: 40,
+        }}
+      >
+        ZSA Voyager / Graphite Layout / Interactive Visualizer
+      </p>
+
+      <Legend />
+
+      <div style={{ marginTop: 8, marginBottom: 16 }}>
+        <LayerSwitcher
+          activeLayer={activeLayer}
+          onLayerChange={setActiveLayer}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+
+      <div style={{ marginBottom: 48 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: "var(--kb-bg)",
+              background:
+                activeLayer === 0
+                  ? "var(--kb-badge-active)"
+                  : "var(--kb-badge-empty)",
+              borderRadius: 4,
+              padding: "2px 8px",
+              letterSpacing: "0.5px",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            LAYER {activeLayer}
+          </span>
+          <span
+            style={{
+              fontSize: 20,
+              fontWeight: 600,
+              color: "var(--kb-text-bright)",
+            }}
           >
-            Documentation
-          </a>
+            {["Graphite Base", "Symbols + Numbers", "Vim Nav"][activeLayer]}
+          </span>
+          <span
+            style={{
+              fontSize: 13,
+              color: "var(--kb-text-muted)",
+              marginLeft: "auto",
+            }}
+          >
+            {activeLayer === 0
+              ? "All plain keycodes \u2014 combos fire from this layer"
+              : activeLayer === 1
+              ? "Hold left thumb \u2014 symbols on left, numpad on right"
+              : "Hold right thumb \u2014 h/j/k/l arrows, Home/End/PgUp/PgDn"}
+          </span>
         </div>
-      </main>
+
+        <KeyboardLayout
+          activeLayer={activeLayer}
+          hoveredKeyId={hoveredKeyId}
+          highlights={highlights}
+          comboLookup={comboLookup}
+          onKeyHover={setHoveredKeyId}
+        />
+      </div>
+
+      <hr
+        style={{
+          border: "none",
+          borderTop: "1px solid var(--kb-border-dim)",
+          margin: "48px 0",
+        }}
+      />
+
+      <div style={{ marginBottom: 48 }}>
+        <ComboPanel
+          activeComboIds={activeComboIds}
+          onComboHover={setHoveredComboId}
+        />
+      </div>
+
+      <hr
+        style={{
+          border: "none",
+          borderTop: "1px solid var(--kb-border-dim)",
+          margin: "48px 0",
+        }}
+      />
+
+      <LedPreview />
     </div>
   );
 }
