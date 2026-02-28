@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { KeyboardLayout } from "@/components/keyboard/KeyboardLayout";
 import { ComboPanel } from "@/components/combos/ComboPanel";
 import { LedPreview } from "@/components/leds/LedPreview";
@@ -170,6 +171,19 @@ export default function Home() {
       />
 
       <LedPreview />
+
+      <div style={{ marginTop: 48, textAlign: "center" }}>
+        <Link
+          href="/research"
+          style={{
+            fontSize: 13,
+            color: "var(--kb-text-muted)",
+            textDecoration: "none",
+          }}
+        >
+          Firmware Research &rarr;
+        </Link>
+      </div>
     </div>
   );
 }
