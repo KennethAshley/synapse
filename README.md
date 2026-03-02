@@ -107,18 +107,108 @@ All combos use adjacent-column, different-finger key pairs on the base layer.
 
 ### Firmware research
 
-The layout was built in 4 phases of research and implementation:
+The layout was built in 4 phases of research and implementation.
 
-1. **Foundation** — Clean Graphite base layer with MO() thumbs, combo timing config, build integration. Started from kenboard-3000's clean alpha pattern.
-2. **Combos** — 18 two-key combos (14 commands, 3 modifiers, 1 escape). `COMBO_MUST_HOLD_MODS` auto-distinguishes tap commands from hold modifiers. Gruvbox LED indicators via `rgb_matrix_indicators_advanced_user`.
-3. **Layers** — Symbols/numbers on left thumb layer (brackets/parens home row, numpad right hand). Vim nav on right thumb layer (h/j/k/l arrows, Home/End/PgUp/PgDn). LED layer colors.
-4. **Polish** — QK_REP on both layer thumbs for key repeat. `NO_ALT_REPEAT_KEY` to save firmware space. Final firmware build at 55KB.
+#### Phase 1: Foundation
+
+**Goal:** Clean Graphite base layer that compiles, flashes, and lets the user type all alphas with zero lag.
 
 Key findings:
-- `KEYCODE_IS_MOD` in QMK source correctly distinguishes bare modifier keycodes from modified keycodes like `LGUI(KC_C)`, making the dual tap/hold behavior automatic
-- Unsized `combo_t key_combos[]` with `sizeof` introspection replaces manual `COMBO_COUNT`
-- All 18 combo pairs were cross-referenced against Graphite bigram frequency data — highest-risk pair (O+U at ~1.5%) intentionally avoided
-- QK_REP auto-ignores MO keys and modifiers, so layer switching never overwrites the repeat buffer
+- Started from kenboard-3000's clean Graphite alphas — no `LT()` or `MT()` on any alpha position
+- Thumb cluster: `MO(1)`, Space, Backspace, `MO(2)` — matches kenboard-3000 proven ergonomics
+- Combo timing defines (`COMBO_TERM 30`, `COMBO_MUST_HOLD_MODS`, `COMBO_STRICT_TIMER`) configured in `config.h` even with zero combos
+- Unsized `combo_t key_combos[]` with `sizeof` introspection replaces manual `COMBO_COUNT` define
+- Removed all mod-tap artifacts: `PERMISSIVE_HOLD`, `TAPPING_TERM_PER_KEY`, `QUICK_TAP_TERM`
+- `ORYX_ENABLE` kept for ZSA live-training compatibility
+
+Risks & notes:
+- Empty combo array compilation — GCC handles zero-length arrays as extension (verified safe)
+- `SERIAL_NUMBER` kept from old layout for Oryx compatibility
+
+#### Phase 2: Combos
+
+**Goal:** Common commands and bare modifiers fire via natural two-key rolling combos on the base layer.
+
+Key findings:
+- 18 combos total: 14 commands (tap), 3 modifiers (hold 150ms), 1 escape
+- `COMBO_MUST_HOLD_MODS` auto-distinguishes tap vs hold — `KEYCODE_IS_MOD` checks `IS_MODIFIER_KEYCODE` in QMK source
+- Command keycodes like `LGUI(KC_C)` have non-zero basic keycodes, so they fire instantly on tap within 30ms `COMBO_TERM`
+- All combo pairs use adjacent-column, different-finger keys — cross-referenced against Graphite bigram data
+- O+U pair (~1.5% bigram frequency) intentionally avoided as highest-risk collision
+- LED modifier indicators via `rgb_matrix_indicators_advanced_user` with `get_mods() | get_weak_mods()`
+- Gruvbox color palette: yellow for Cmd, aqua for Ctrl
+- Voyager has 52 addressable RGB LEDs via IS31FL3731 driver
+
+Risks & notes:
+- R+T pair ('tr' ~0.3%) assigned to Copy — monitor during daily use
+- H+A pair ('ha' ~1.2%) safe for Cmd because hold requirement prevents tap misfires
+- LED colors set outside indicator callback get overwritten by animation frames
+
+#### Phase 3: Layers
+
+**Goal:** Full symbols/numbers layout and vim-style navigation accessible without leaving home position.
+
+Key findings:
+- Layer 1 (symbols): brackets/parens/braces on left home row, numpad on right — adapted from kenboard-3000 pattern
+- Layer 2 (nav): vim h/j/k/l arrows on right home row, Home/End/PgUp/PgDn on bottom row
+- Convenience keys (Tab, Enter, Escape, Backspace) on left hand of nav layer for one-handed editing
+- `COMBO_ONLY_FROM_LAYER 0` means combos work from any active layer — combo resolution always uses base layer keycodes
+- `MO()` key positions must be `KC_TRANSPARENT` on their target layer to prevent layer sticking
+- Layer LED indicators: orange (Gruvbox `#fe8019`) for symbols, blue (`#83a598`) for nav
+- Layer check runs before modifier check in LED indicator chain — layer context takes priority
+
+Risks & notes:
+- Shifted keycodes (`KC_LPRN` etc.) internally register/unregister shift — don't hold physical shift simultaneously
+- `LAYER_STATE_8BIT` limits total layers to 0-7 (sufficient for this layout)
+
+#### Phase 4: Polish
+
+**Goal:** Daily-driver ready with key repeat and timing tuned from real usage.
+
+Key findings:
+- `QK_REP` placed on both layer thumbs — nav layer left inner thumb, symbols layer right inner thumb
+- `QK_REP` auto-ignores `MO` keys, modifier keycodes, and itself — layer switching never overwrites repeat buffer
+- `QK_REP` remembers modifier state: Shift+A then REP sends Shift+A again
+- Can repeat combo outputs: Copy combo (R+T) then REP sends Cmd+C again
+- `NO_ALT_REPEAT_KEY` saves ~500 bytes firmware (`QK_AREP` not needed with dedicated nav layer)
+- Fixed `build.sh` to use `QMK_HOME` from `qmk config` instead of hardcoded path
+- Final firmware binary: 55KB, flashable via Keymapp
+
+Risks & notes:
+- `COMBO_TERM` may need adjustment after extended daily use — tune in 2-3ms increments
+- Per-combo timing (`COMBO_TERM_PER_COMBO`) available if individual combos need different windows
+
+### Bigram collision analysis
+
+Each combo pair cross-referenced against English bigram frequency on the Graphite layout. Pairs with >0.3% frequency are flagged.
+
+| Pair | Frequency | Risk | Assignment | Note |
+|------|-----------|------|------------|------|
+| O+U | ~1.5% | high | Avoided | Highest-risk pair — intentionally left unassigned |
+| H+A | ~1.2% | safe | Right Cmd | Hold requirement (150ms) prevents tap misfires during fast 'ha' rolls |
+| R+T | ~0.3% | medium | Copy | Monitor during daily use at 30ms COMBO_TERM |
+| L+D | ~0.3% | safe | Escape | Proven safe in kenboard-3000 with COMBO_STRICT_TIMER |
+| F+O | ~0.3% | medium | Quick Open | Cross-finger roll, monitoring recommended |
+| E+I | ~0.3% | medium | App Switch | Right hand pair, moderate frequency |
+| T+S | ~0.1% | safe | Left Cmd | Proven safe in kenboard-3000 |
+| B+L | ~0.1% | safe | Close Window | Low bigram frequency |
+| A+E | ~0.02% | safe | Right Ctrl | Proven safe in kenboard-3000 |
+| N+R | ~0.05% | safe | Undo | Very low frequency |
+| X+M | ~0% | safe | Paste | 'xm' essentially nonexistent in English |
+| M+C | ~0.02% | safe | Cut | Very low frequency |
+| C+V | ~0% | safe | Redo | 'cv' does not occur in English |
+| Q+X | ~0% | safe | Save | 'qx' does not occur in English |
+
+### Sources
+
+- [QMK Combo Documentation](https://docs.qmk.fm/features/combo)
+- [QMK Repeat Key](https://docs.qmk.fm/features/repeat_key)
+- [QMK RGB Matrix](https://docs.qmk.fm/features/rgb_matrix)
+- [Graphite Layout](https://github.com/rdavison/graphite-layout)
+- [Combo Mods Guide](https://jasoncarloscox.com/writing/combo-mods/)
+- [ZSA Combos Blog](https://blog.zsa.io/2212-combos/)
+- [Symbol Layer Design (getreuer.info)](https://getreuer.info/posts/keyboards/symbol-layer/index.html)
+- [Gruvbox Color Palette](https://github.com/morhetz/gruvbox-contrib)
 
 ## Tech stack
 
