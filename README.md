@@ -114,8 +114,8 @@ The layout was built in 4 phases of research and implementation.
 **Goal:** Clean Graphite base layer that compiles, flashes, and lets the user type all alphas with zero lag.
 
 Key findings:
-- Started from kenboard-3000's clean Graphite alphas — no `LT()` or `MT()` on any alpha position
-- Thumb cluster: `MO(1)`, Space, Backspace, `MO(2)` — matches kenboard-3000 proven ergonomics
+- Clean Graphite alphas — no `LT()` or `MT()` on any alpha position
+- Thumb cluster: `MO(1)`, Space, Backspace, `MO(2)`
 - Combo timing defines (`COMBO_TERM 30`, `COMBO_MUST_HOLD_MODS`, `COMBO_STRICT_TIMER`) configured in `config.h` even with zero combos
 - Unsized `combo_t key_combos[]` with `sizeof` introspection replaces manual `COMBO_COUNT` define
 - Removed all mod-tap artifacts: `PERMISSIVE_HOLD`, `TAPPING_TERM_PER_KEY`, `QUICK_TAP_TERM`
@@ -149,7 +149,7 @@ Risks & notes:
 **Goal:** Full symbols/numbers layout and vim-style navigation accessible without leaving home position.
 
 Key findings:
-- Layer 1 (symbols): brackets/parens/braces on left home row, numpad on right — adapted from kenboard-3000 pattern
+- Layer 1 (symbols): brackets/parens/braces on left home row, numpad on right
 - Layer 2 (nav): vim h/j/k/l arrows on right home row, Home/End/PgUp/PgDn on bottom row
 - Convenience keys (Tab, Enter, Escape, Backspace) on left hand of nav layer for one-handed editing
 - `COMBO_ONLY_FROM_LAYER 0` means combos work from any active layer — combo resolution always uses base layer keycodes
@@ -187,12 +187,12 @@ Each combo pair cross-referenced against English bigram frequency on the Graphit
 | O+U | ~1.5% | high | Avoided | Highest-risk pair — intentionally left unassigned |
 | H+A | ~1.2% | safe | Right Cmd | Hold requirement (150ms) prevents tap misfires during fast 'ha' rolls |
 | R+T | ~0.3% | medium | Copy | Monitor during daily use at 30ms COMBO_TERM |
-| L+D | ~0.3% | safe | Escape | Proven safe in kenboard-3000 with COMBO_STRICT_TIMER |
+| L+D | ~0.3% | safe | Escape | Proven safe with COMBO_STRICT_TIMER |
 | F+O | ~0.3% | medium | Quick Open | Cross-finger roll, monitoring recommended |
 | E+I | ~0.3% | medium | App Switch | Right hand pair, moderate frequency |
-| T+S | ~0.1% | safe | Left Cmd | Proven safe in kenboard-3000 |
+| T+S | ~0.1% | safe | Left Cmd | Low bigram frequency |
 | B+L | ~0.1% | safe | Close Window | Low bigram frequency |
-| A+E | ~0.02% | safe | Right Ctrl | Proven safe in kenboard-3000 |
+| A+E | ~0.02% | safe | Right Ctrl | Very low frequency |
 | N+R | ~0.05% | safe | Undo | Very low frequency |
 | X+M | ~0% | safe | Paste | 'xm' essentially nonexistent in English |
 | M+C | ~0.02% | safe | Cut | Very low frequency |
